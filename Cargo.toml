@@ -1,0 +1,22 @@
+[package]
+name = "pvbc"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+# Webserver
+axum = { version = "0.8.4", features = ["macros"] }
+dotenvy = { git = "https://github.com/allan2/dotenvy", branch = "main", version = "0.15.7" }
+tokio = { version = "1.47.1", features = ["full"] }
+
+# shields
+shields = "1.1.1"
+
+# UUID
+uuid = { version = "1.17.0", features = ["serde", "v4"] }
+
+# DB
+tokio-postgres = { version = "0.7.13", features = ["with-uuid-1"] }
+bb8 = "0.9.0"
+bb8-postgres = "0.9.0"
