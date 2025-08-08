@@ -7,7 +7,7 @@ use axum::{
     Router,
     extract::{FromRef, FromRequestParts, Path, Query},
     http::{Response, StatusCode, request::Parts},
-    response::IntoResponse,
+    response::{Html, IntoResponse},
     routing::get,
 };
 use uuid::Uuid;
@@ -65,7 +65,7 @@ fn badge_style_from_string(s: &str) -> Option<shields::BadgeStyle> {
 
 async fn new_uuid(
     DatabaseConnection(conn): DatabaseConnection,
-) -> Result<String, (StatusCode, String)> {
+) -> Result<Html<String>, (StatusCode, String)> {
     let uuid: Uuid = conn
         .query_one(
             "INSERT INTO counts (id, count) VALUES (gen_random_uuid(), 0) RETURNING id",
@@ -75,22 +75,84 @@ async fn new_uuid(
         .map_err(internal_error)?
         .get("id");
 
-    Ok(format!(
-        r#"Welcome! This is a simple API for generating visitor count badges using shields.io.
+    Ok(Html(format!(
+        r##"<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>pvbc - Page View Badge Counter</title>
+  <style>
+    body {{
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      max-width: 800px;
+      line-height: 1.6;
+      color: #333;
+    }}
+    code {{
+      background-color: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }}
+    a {{
+      color: #007acc;
+      text-decoration: none;
+    }}
+    a:hover {{
+      text-decoration: underline;
+    }}
+  </style>
+</head>
+<body>
+  <h1>pvbc - Page View Badge Counter</h1>
 
-Your new unique ID is: {0}
-To begin tracking, visit: /{0}
+  <p>
+    <strong>PVBC</strong> is a simple API for generating page view badges using
+    <a href="https://shields.io/badges/static-badge" target="_blank" rel="noopener">Shields.io</a>.
+  </p>
 
-You can customize the badge appearance using any of the query parameters supported by shields.io static badges:
-https://shields.io/badges/static-badge
+  <h2>Your Unique Visitor Badge</h2>
+  <p>
+    <strong>Unique ID:</strong> <code>{0}</code><br>
+    To start tracking page views, simply embed this image in your page:<br>
+    <code>/{0}</code>
+  </p>
 
-Note: Only query parameters are supported.
-      `logoSize`, `cacheSeconds`, and `link` are not supported.
-      The default value for label is "visitors""#,
+  <h2>Customizing Your Badge</h2>
+  <p>
+    You can customize the appearance of your badge using any of the query parameters supported by
+    <a href="https://shields.io/badges/static-badge" target="_blank" rel="noopener">Shields.io static badges</a>.
+  </p>
+
+  <p><strong>Example parameters:</strong></p>
+  <ul>
+    <li><code>?label=views</code></li>
+    <li><code>&color=blue</code></li>
+    <li><code>&style=flat-square</code></li>
+  </ul>
+
+  <p><strong>Unsupported parameters:</strong> <code>logoSize</code>, <code>cacheSeconds</code>, <code>link</code></p>
+  <p><strong>Default label:</strong> <code>visitors</code></p>
+
+  <h2>Example Badge (for this page)</h2>
+  <p>This badge tracks views to this page itself:</p>
+  <img src="https://pvbc.e.hackclub.app/426b18a0-8191-4afc-a0e5-96f582803722?label=page%20views&color=brightgreen&style=flat-square" alt="Page View Badge">
+
+  <h2>Embed Instructions</h2>
+  <p>Use the following Markdown or HTML to embed <strong>your</strong> badge:</p>
+
+  <h3>Markdown</h3>
+  <pre><code>![visitors](https://pvbc.e.hackclub.app/{0})</code></pre>
+
+  <h3>HTML</h3>
+  <pre><code>&lt;img src="https://pvbc.e.hackclub.app/{0}" alt="Visitor Badge"&gt;</code></pre>
+
+</body>
+</html>"##,
         uuid.to_string()
-    ))
+    )))
 }
-
 async fn get_badge(
     Path(uuid): Path<Uuid>,
     Query(params): Query<HashMap<String, String>>,
